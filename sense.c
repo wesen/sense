@@ -36,8 +36,7 @@ static void kindermord(int bla) {
 }
 
 int main(int argc, char *argv[], char *envp[]) {
-   unsigned char *cmd = NULL, *ptr;
-   char          *args[4];
+   char *cmd = NULL, *ptr, *args[4];
    int           retval = EXIT_SUCCESS, c, interval = 2,
                  len, i, j, *lens = NULL;
 
@@ -75,7 +74,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
    for (len = j = 0, i = optind; i < argc; i++, j++) {
       len += lens[j] = strlen(argv[i]);
-      len += 2;
+      len += 1;
    }
 
    if (!(cmd = malloc(len + 1))) {
@@ -84,11 +83,10 @@ int main(int argc, char *argv[], char *envp[]) {
       goto main_exit;
    }
 
-   for (ptr = cmd, i = optind, j = 0; i < argc; i++) {
+   for (ptr = cmd, i = optind, j = 0; i < argc; i++, j++) {
       memcpy(ptr, argv[i], lens[j]);
       ptr += lens[j];
-      *ptr = ' ';
-      *ptr++;
+      *ptr++ = ' ';
    }
    *(ptr - 1) = '\0';
 
@@ -100,7 +98,9 @@ int main(int argc, char *argv[], char *envp[]) {
    args[0] = argv[optind];
    args[1] = "-c";
    args[2] = cmd;
-   args[3] = NULL;
+   args[3] = (char *)NULL;
+
+   printf("cmd: %s\n", cmd);
 
    if ((childpid = fork()) == 0) {
       /* child */
