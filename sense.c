@@ -31,7 +31,6 @@ static void kindermord(int bla) {
       exit(1);
    }
 
-   printf("Child finished\n");
    exit(0);
 }
 
@@ -130,8 +129,6 @@ int main(int argc, char *argv[], char *envp[]) {
    args[2] = cmd;
    args[3] = (char *)NULL;
    
-   printf("cmd: %s\n", cmd);
-   
    if ((childpid = fork()) == 0) {
      /* child */
      if (execve("/bin/sh", args, envp) < 0) {
@@ -140,7 +137,6 @@ int main(int argc, char *argv[], char *envp[]) {
      }
    } else {
      sleep(interval);
-     printf("Bringe jetzt Kind um!\n");
      kill(childpid, sig);
    }
    
