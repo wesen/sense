@@ -10,7 +10,7 @@
 pid_t childpid = -1;
 
 void usage(char *progname) {
-   fprintf(stderr, "Usage: %s [-h] [-n time] <command>\n", progname);
+   fprintf(stderr, "Usage: %s [-h] [-n time] [-s signal] <command>\n", progname);
 }
 
 static void stirb(int bla) {
@@ -35,90 +35,120 @@ static void kindermord(int bla) {
    exit(0);
 }
 
+#define NSIGS 20
+static char *signames[NSIGS] = {
+  "hup", "int", "quit", "ill", "trap", "abrt", "emt", 
+  "fpe", "kill", "bus", "segv", "sys", "pipe", "alrm",
+  "term", "urg", "stop", "tstp", "cont", "chld", 
+};
+
+int signame_to_signum(char *sig)
+{
+        int n;
+
+        if (!strncasecmp(sig, "sig", (size_t)3))
+                sig += 3;
+        for (n = 1; n < NSIGS; n++) {
+                if (!strcasecmp(signames[n], sig))
+                        return (n);
+        }
+        return (-1);
+}
+
+int sig = SIGKILL;
+
 int main(int argc, char *argv[], char *envp[]) {
    char *cmd = NULL, *ptr, *args[4];
    int           retval = EXIT_SUCCESS, c, interval = 2,
                  len, i, j, *lens = NULL;
 
-   while ((c = getopt(argc, argv, "+hn:")) != -1) {
-      switch (c) {
-         case 'h':
-            retval = EXIT_SUCCESS;
-            goto main_exit;
-            
-         case 'n':
-            interval = atoi(optarg);
-            if (!interval) {
-               retval = EXIT_SUCCESS;
-               goto main_exit;
-            }
-            break;
-
-         default:
-            retval = EXIT_FAILURE;
-            goto main_exit;
-      }
+   while ((c = getopt(argc, argv, "+hn:s:")) != -1) {
+     switch (c) {
+     case 'h':
+       retval = EXIT_SUCCESS;
+       goto main_exit;
+       break;
+       
+     case 's':
+       sig = atoi(optarg);
+       if (!sig) {
+	 sig = signame_to_signum(optarg);
+       }
+       break;
+       
+     case 'n':
+       interval = atoi(optarg);
+       if (!interval) {
+	 retval = EXIT_SUCCESS;
+	 goto main_exit;
+       }
+       break;
+       
+     default:
+       retval = EXIT_FAILURE;
+       goto main_exit;
+     }
    }
-  
+   
    if (argc <= optind) {
-      usage(argv[0]);
-      retval = EXIT_FAILURE;
-      goto main_exit;
+     usage(argv[0]);
+     retval = EXIT_FAILURE;
+     goto main_exit;
    }
-
+   
    if (!(lens = malloc(sizeof(int) * (argc - optind)))) {
-      fprintf(stderr, "Not enough memory\n");
-      retval = EXIT_FAILURE;
-      goto main_exit;
+     fprintf(stderr, "Not enough memory\n");
+     retval = EXIT_FAILURE;
+     goto main_exit;
    }
-
+   
    for (len = j = 0, i = optind; i < argc; i++, j++) {
-      len += lens[j] = strlen(argv[i]);
-      len += 1;
+     len += lens[j] = strlen(argv[i]);
+     len += 1;
    }
-
+   
    if (!(cmd = malloc(len + 1))) {
-      fprintf(stderr, "Not enough memory\n");
-      retval = EXIT_FAILURE;
-      goto main_exit;
+     fprintf(stderr, "Not enough memory\n");
+     retval = EXIT_FAILURE;
+     goto main_exit;
    }
-
+   
    for (ptr = cmd, i = optind, j = 0; i < argc; i++, j++) {
-      memcpy(ptr, argv[i], lens[j]);
-      ptr += lens[j];
-      *ptr++ = ' ';
+     memcpy(ptr, argv[i], lens[j]);
+     ptr += lens[j];
+     *ptr++ = ' ';
    }
    *(ptr - 1) = '\0';
-
+   
    signal(SIGINT,  stirb);
    signal(SIGTERM, stirb);
    signal(SIGHUP,  stirb);
    signal(SIGCHLD, kindermord);
-
+   
    args[0] = argv[optind];
    args[1] = "-c";
    args[2] = cmd;
    args[3] = (char *)NULL;
-
+   
    printf("cmd: %s\n", cmd);
-
+   
    if ((childpid = fork()) == 0) {
-      /* child */
-      if (execve("/bin/sh", args, envp) < 0) {
-         perror(argv[optind]);
-         exit(1);
-      }
+     /* child */
+     if (execve("/bin/sh", args, envp) < 0) {
+       perror(argv[optind]);
+       exit(1);
+     }
    } else {
-      sleep(interval);
-      printf("Bringe jetzt Kind um!\n");
-      kill(childpid, SIGTERM);
+     sleep(interval);
+     printf("Bringe jetzt Kind um!\n");
+     kill(childpid, sig);
    }
-
-main_exit:
+   
+ main_exit:
    if (cmd)
-      free(cmd);
+     free(cmd);
    if (lens)
-      free(lens);
-
+     free(lens);
+   
    return retval;
 }
