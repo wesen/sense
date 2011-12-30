@@ -58,8 +58,9 @@ int sig = SIGKILL;
 
 int main(int argc, char *argv[], char *envp[]) {
    char *cmd = NULL, *ptr, *args[4];
-   int           retval = EXIT_SUCCESS, c, interval = 2,
+   int           retval = EXIT_SUCCESS, c,
                  len, i, j, *lens = NULL;
+   double interval = 2.0f;
 
    while ((c = getopt(argc, argv, "+hn:s:")) != -1) {
      switch (c) {
@@ -76,7 +77,7 @@ int main(int argc, char *argv[], char *envp[]) {
        break;
        
      case 'n':
-       interval = atoi(optarg);
+       interval = atof(optarg);
        if (!interval) {
 	 retval = EXIT_SUCCESS;
 	 goto main_exit;
@@ -136,7 +137,7 @@ int main(int argc, char *argv[], char *envp[]) {
        exit(1);
      }
    } else {
-     sleep(interval);
+     usleep(interval * 1000000.0f);
      kill(childpid, sig);
    }
    
